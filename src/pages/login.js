@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
+import { AuthService } from "../services/authService";
 
 export default function Login() {
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -10,12 +11,21 @@ export default function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (emailOrPhone === "test@example.com" && password === "password123") {
-        alert("Login successful!");
-        navigate("/success");
-    } else {
-        setError("Invalid email/phone number or password");
-    }
+    AuthService.login(emailOrPhone, password)
+      .then((response) => {
+        console.log(response.ok);
+        if (response.ok) {
+          alert("Login Successful!");
+          navigate("/success");
+        } else {
+          setError("Login failed. Wrong email or password.");
+          console.log("Login Failed:", response.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Login Failed:", error);
+        setError("Login failed");
+      });
   };
 
   const handleGoogleSuccess = (credentialResponse) => {
