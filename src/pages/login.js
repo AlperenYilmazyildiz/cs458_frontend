@@ -1,43 +1,122 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../services/authService";
+import { jwtDecode } from "jwt-decode";
 
 export default function Login() {
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loginAttempts, setLoginAttempts] = useState(
+    Number(localStorage.getItem("loginAttempts")) || 0
+  );
+  const [isBlocked, setIsBlocked] = useState(
+    localStorage.getItem("isBlocked") === "true"
+  );
+  const [timer, setTimer] = useState(
+    Number(localStorage.getItem("timer")) || 10
+  );
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
   const navigate = useNavigate();
+
+  function emailRegexCorrect(email) { 
+    return emailRegex.test(email);
+  }
 
   const handleLogin = (e) => {
     e.preventDefault();
-    AuthService.login(emailOrPhone, password)
-      .then((response) => {
-        console.log(response.ok);
-        if (response.ok) {
-          alert("Login Successful!");
-          navigate("/success");
-        } else {
-          setError("Login failed. Wrong email or password.");
-          console.log("Login Failed:", response.message);
-        }
-      })
-      .catch((error) => {
-        console.error("Login Failed:", error);
-        setError("Login failed");
-      });
+    if (!emailRegexCorrect(email)) {
+      setError("Email format is incorrect. Email must contain one '@', characters before '@' and after '@'.");
+    }
+    else {
+      AuthService.login(email, password)
+        .then((response) => {
+          console.log(response.ok);
+          if (response.ok) {
+            alert("Login Successful!");
+            navigate("/success");
+            resetLoginState();
+          } else {
+            setError("Login failed. Wrong email or password.");
+            console.log("Login Failed:", response.message);
+            const newAttempts = loginAttempts + 1;
+            setLoginAttempts(newAttempts);
+            localStorage.setItem("loginAttempts", newAttempts);
+            // Block login after 5 failed attempts
+            if (newAttempts >= 5) {
+              setIsBlocked(true);
+              localStorage.setItem("isBlocked", "true");
+              startTimer();
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Login Failed:", error);
+          setError("Login failed");
+        });
+    }
   };
+
+  const startTimer = () => {
+    const interval = setInterval(() => {
+      setTimer((prevTimer) => {
+        const newTimer = prevTimer - 1;
+        localStorage.setItem("timer", newTimer);
+
+        if (newTimer === 0) {
+          clearInterval(interval);
+          resetLoginState();
+        }
+        return newTimer;
+      });
+    }, 1000);
+  };
+
+  const resetLoginState = () => {
+    setLoginAttempts(0);
+    setIsBlocked(false);
+    setTimer(10);
+    localStorage.removeItem("loginAttempts");
+    localStorage.removeItem("isBlocked");
+    localStorage.removeItem("timer");
+  };
+
+  // Clear localStorage on component unmount (optional)
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem("loginAttempts");
+      localStorage.removeItem("isBlocked");
+      localStorage.removeItem("timer");
+    };
+  }, []);
 
   const handleGoogleSuccess = (credentialResponse) => {
     console.log("Google Login Success:", credentialResponse);
-    alert("Google Login Successful!");
-    navigate("/success");
+    const decoded = jwtDecode(credentialResponse.credential);
+    AuthService.checkExistingUser(decoded.email)
+      .then((response) => {
+        if (response.ok) {
+          alert("User with email " +  decoded.email + " already exists.");
+          setError("Google login failed. Please try again.");
+        } else {
+          alert("Google Login Successful!");
+          navigate("/success");
+        }
+      })
+      .catch((error) => {
+        console.error("Google login failed. Please try again.", error);
+      });
   };
 
   const handleGoogleFailure = () => {
     console.error("Google Login Failed");
     setError("Google login failed. Please try again.");
   };
+
+  
 
   return (
     <GoogleOAuthProvider clientId="920285886677-sdrd539vgvciuk4tu3q6okggvvdad963.apps.googleusercontent.com"> {/* Replace with your Google Client ID */}
@@ -98,8 +177,8 @@ export default function Login() {
                 borderRadius: "0.5rem",
                 outline: "none",
               }}
-              value={emailOrPhone}
-              onChange={(e) => setEmailOrPhone(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
             <input
@@ -118,6 +197,7 @@ export default function Login() {
             />
             <button
               type="submit"
+              disabled={isBlocked}
               style={{
                 width: "100%",
                 backgroundColor: "#3b82f6",
@@ -128,9 +208,9 @@ export default function Login() {
                 cursor: "pointer",
               }}
             >
-              Login
+              {isBlocked ? `Try again in ${timer} seconds` : "Login"}
             </button>
-          </form>
+        </form>
           <div
             style={{
               marginTop: "1.5rem",
@@ -150,7 +230,6 @@ export default function Login() {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleFailure}
-              useOneTap // Optional: Enables Google One Tap login
             />
           </div>
         </div>
