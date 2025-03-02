@@ -41,7 +41,6 @@ export default function Login() {
             resetLoginState();
           } else {
             setError("Login failed. Wrong email or password.");
-            console.log("Login Failed:", response.message);
             const newAttempts = loginAttempts + 1;
             setLoginAttempts(newAttempts);
             localStorage.setItem("loginAttempts", newAttempts);
@@ -150,6 +149,7 @@ export default function Login() {
           </h1>
           {error && (
             <p
+              id="error-message"
               style={{
                 color: "#ef4444",
                 textAlign: "center",
