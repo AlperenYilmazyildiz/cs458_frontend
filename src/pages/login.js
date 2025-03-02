@@ -96,8 +96,11 @@ export default function Login() {
     console.log("Google Login Success:", credentialResponse);
     const decoded = jwtDecode(credentialResponse.credential);
     AuthService.checkExistingUser(decoded.email)
-      .then((response) => {
-        if (response.ok) {
+      .then(function(response){
+        return response.json();
+      })
+      .then(function(data){
+        if (data) {
           alert("User with email " +  decoded.email + " already exists.");
           setError("Google login failed. Please try again.");
         } else {

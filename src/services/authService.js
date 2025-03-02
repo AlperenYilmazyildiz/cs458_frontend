@@ -15,7 +15,7 @@ export class AuthService {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email }),
+            body: email,
         });
     }
 }
