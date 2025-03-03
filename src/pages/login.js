@@ -121,7 +121,7 @@ export default function Login() {
   
 
   return (
-    <GoogleOAuthProvider clientId="920285886677-sdrd539vgvciuk4tu3q6okggvvdad963.apps.googleusercontent.com"> {/* Replace with your Google Client ID */}
+    <GoogleOAuthProvider clientId="920285886677-sdrd539vgvciuk4tu3q6okggvvdad963.apps.googleusercontent.com"> 
       <div
         style={{
           display: "flex",
