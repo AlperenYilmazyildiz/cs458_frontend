@@ -176,8 +176,8 @@ async function testLoginWithSameEmail() {
     }
 }
 
-//testInvalidLogin();
-//testWrongEmailFormat();
-//testMultipleFailedAttempts();
-//testGoogleLogin();
+testInvalidLogin();
+testWrongEmailFormat();
+testMultipleFailedAttempts();
+testGoogleLogin();
 testLoginWithSameEmail();
